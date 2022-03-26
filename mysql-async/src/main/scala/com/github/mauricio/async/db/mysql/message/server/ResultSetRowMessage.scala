@@ -35,18 +35,8 @@ class ResultSetRowMessage
     buffer.update(n, newelem)
   }
 
-  def +=(elem: ByteBuf): this.type = {
-    this.buffer += elem
-    this
-  }
-
   def clear() {
     this.buffer.clear()
-  }
-
-  def +=:(elem: ByteBuf): this.type = {
-    this.buffer.+=:(elem)
-    this
   }
 
   def insertAll(n: Int, elems: Traversable[ByteBuf]) {
@@ -59,4 +49,24 @@ class ResultSetRowMessage
 
   override def iterator: Iterator[ByteBuf] = this.buffer.iterator
 
+  override def prepend(elem: ByteBuf): ResultSetRowMessage.this.type = {
+    buffer.prepend(elem)
+    this
+  }
+
+  override def insert(idx: Int, elem: ByteBuf): Unit = buffer.insert(idx, elem)
+
+  override def insertAll(idx: Int, elems: IterableOnce[ByteBuf]): Unit = buffer.insertAll(idx, elems)
+
+  override def remove(idx: Int, count: Int): Unit = buffer.remove(idx, count)
+
+  override def patchInPlace(from: Int, patch: IterableOnce[ByteBuf], replaced: Int): ResultSetRowMessage.this.type = {
+    buffer.patchInPlace(from, patch, replaced)
+    this
+  }
+
+  override def addOne(elem: ByteBuf): ResultSetRowMessage.this.type = {
+    buffer.addOne(elem)
+    this
+  }
 }

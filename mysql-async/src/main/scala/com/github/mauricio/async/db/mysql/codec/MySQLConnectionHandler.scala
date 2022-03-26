@@ -19,7 +19,6 @@ package com.github.mauricio.async.db.mysql.codec
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
-
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.exceptions.DatabaseException
 import com.github.mauricio.async.db.general.MutableResultSet
@@ -39,6 +38,7 @@ import scala.annotation.switch
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.concurrent._
 import scala.concurrent.duration.Duration
+import scala.util.Failure
 
 class MySQLConnectionHandler(
                               configuration: Configuration,
@@ -84,8 +84,8 @@ class MySQLConnectionHandler(
     this.bootstrap.option[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
     this.bootstrap.option[ByteBufAllocator](ChannelOption.ALLOCATOR, LittleEndianByteBufAllocator.INSTANCE)
 
-    this.bootstrap.connect(new InetSocketAddress(configuration.host, configuration.port)).onFailure {
-      case exception => this.connectionPromise.tryFailure(exception)
+    this.bootstrap.connect(new InetSocketAddress(configuration.host, configuration.port)).onComplete {
+      case Failure(exception) => this.connectionPromise.tryFailure(exception)
     }
 
     this.connectionPromise.future
@@ -143,7 +143,7 @@ class MySQLConnectionHandler(
           }
           case ServerMessage.BinaryRow => {
             val message = m.asInstanceOf[BinaryRowMessage]
-            this.currentQuery.addRow( this.binaryRowDecoder.decode(message.buffer, this.currentColumns ))
+            this.currentQuery.addRow( this.binaryRowDecoder.decode(message.buffer, this.currentColumns.toSeq ))
           }
           case ServerMessage.ParamProcessingFinished => {
           }
@@ -201,7 +201,7 @@ class MySQLConnectionHandler(
 
     this.parsedStatements.get(preparedStatement.statement) match {
       case Some( item ) => {
-        this.executePreparedStatement(item.statementId, item.columns.size, preparedStatement.values, item.parameters)
+        this.executePreparedStatement(item.statementId, item.columns.size, preparedStatement.values, item.parameters.toSeq)
       }
       case None => {
         decoder.preparedStatementPrepareStarted()
@@ -305,7 +305,7 @@ class MySQLConnectionHandler(
       this.currentColumns
     }
 
-    this.currentQuery = new MutableResultSet[ColumnDefinitionMessage](columns)
+    this.currentQuery = new MutableResultSet[ColumnDefinitionMessage](columns.toIndexedSeq)
 
     if ( this.currentPreparedStatementHolder != null ) {
       this.parsedStatements.put( this.currentPreparedStatementHolder.statement, this.currentPreparedStatementHolder )
@@ -313,7 +313,7 @@ class MySQLConnectionHandler(
         this.currentPreparedStatementHolder.statementId,
         this.currentPreparedStatementHolder.columns.size,
         this.currentPreparedStatement.values,
-        this.currentPreparedStatementHolder.parameters
+        this.currentPreparedStatementHolder.parameters.toSeq
       )
       this.currentPreparedStatementHolder = null
       this.currentPreparedStatement = null
@@ -324,8 +324,8 @@ class MySQLConnectionHandler(
     if ( this.currentContext.channel().isActive ) {
       val res = this.currentContext.writeAndFlush(message)
 
-      res.onFailure {
-        case e : Throwable => handleException(e)
+      res.onComplete {
+        case Failure(e) => handleException(e)
       }
 
       res

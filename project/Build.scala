@@ -13,7 +13,8 @@ object ProjectBuild extends Build {
     settings = Configuration.baseSettings ++ Seq(
       publish := (),
       publishLocal := (),
-      publishArtifact := false
+      publishArtifact := false,
+      scalaVersion := Configuration.projectScalaVersion
     ),
     aggregate = Seq(common, postgresql, mysql)
   )
@@ -23,7 +24,8 @@ object ProjectBuild extends Build {
     base = file(commonName),
     settings = Configuration.baseSettings ++ Seq(
       name := commonName,
-      libraryDependencies ++= Configuration.commonDependencies
+      libraryDependencies ++= Configuration.commonDependencies,
+      scalaVersion := Configuration.projectScalaVersion
     )
   )
 
@@ -32,7 +34,8 @@ object ProjectBuild extends Build {
     base = file(postgresqlName),
     settings = Configuration.baseSettings ++ Seq(
       name := postgresqlName,
-      libraryDependencies ++= Configuration.implementationDependencies
+      libraryDependencies ++= Configuration.implementationDependencies,
+      scalaVersion := Configuration.projectScalaVersion
     )
   ) dependsOn (common)
 
@@ -41,7 +44,8 @@ object ProjectBuild extends Build {
     base = file(mysqlName),
     settings = Configuration.baseSettings ++ Seq(
       name := mysqlName,
-      libraryDependencies ++= Configuration.implementationDependencies
+      libraryDependencies ++= Configuration.implementationDependencies,
+      scalaVersion := Configuration.projectScalaVersion
     )
   ) dependsOn (common)
 
@@ -51,7 +55,7 @@ object Configuration {
 
   val commonVersion = "0.2.21"
   val projectScalaVersion = "2.13.8"
-  val specs2Version = "3.8.6"
+  val specs2Version = "4.5.1"
 
   val specs2Dependency = "org.specs2" %% "specs2-core" % specs2Version % "test"
   val specs2JunitDependency = "org.specs2" %% "specs2-junit" % specs2Version % "test"
@@ -84,7 +88,7 @@ object Configuration {
     ,
     testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "sequential"),
     scalacOptions in doc := Seq("-doc-external-doc:scala=http://www.scala-lang.org/archives/downloads/distrib/files/nightly/docs/library/"),
-    crossScalaVersions := Seq(projectScalaVersion, "2.10.6", "2.11.8"),
+    crossScalaVersions := Seq(projectScalaVersion),
     javacOptions := Seq("-source", "1.6", "-target", "1.6", "-encoding", "UTF8"),
     organization := "com.github.mauricio",
     version := commonVersion,
